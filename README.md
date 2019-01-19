@@ -2,4 +2,4 @@
 
 TODO
 
-![Architecture](https://github.com/bootifulmicropizza/_project/raw/master/infrastructure/architecture.png "Architecture")
+![Architecture](https://github.com/bootifulmicropizza/infrastructure/raw/master/architecture.png "Architecture")
