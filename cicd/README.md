@@ -8,22 +8,15 @@ See the Jenkins directory.
 
 ## CodeBuild
 
-`aws cloudformation create-stack --stack-name build-deploy-config-service-cf --template-body file://codebuild/codebuild.yml --region eu-west-1 --parameters ParameterKey=ModuleName,ParameterValue=config-service --capabilities CAPABILITY_NAMED_IAM`
+`aws cloudformation create-stack --stack-name build-deploy-config-service-cf --template-body file://codebuild/codebuild.yml --region eu-west-1 --parameters ParameterKey=ModuleName,ParameterValue=config-service ParameterKey=GitHubToken,ParameterValue=$AWS_GITHUB_TOKEN --capabilities CAPABILITY_NAMED_IAM`
 
 ### Requirements
 
-- Setup CodeBuild to build each of the bootifulmicropizza components
-- Setup CodeDeploy/Code Pipeline to deploy to EKS K8S instance
-
-### Release process
-
-- master contains the current production code - can NEVER be a snapshot version
-- development branch is where dev code lives
-- release branches should be created from development branch:
-	- $ mvn versions:set -DnewVersion=1.0.0
-- once release branch has been built and tested it can be merged to master
-
-AWS CodeBuild/DeployPipeline can be used to take master and deploy it to production. The pipeline could be setup such that the first environment is dev or qa before production.
+- Push code to GitHub
+- Build produces new Docker image and publishes to ECR (tagged with commit hash)
+- Docker image is deployed to dev environment (K8S namespace on same cluster)
+- Optional next step is to deploy image to next environment. e.g. stage, or production
+- As last step for next environment as required
 
 #### References
-https://dzone.com/articles/why-i-never-use-maven-release
+https://stelligent.com/2016/01/08/provisioning-custom-codepipeline-actions-in-cloudformation/

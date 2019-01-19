@@ -52,3 +52,4 @@ https://hackernoon.com/quickly-spin-up-an-aws-eks-kubernetes-cluster-using-cloud
 https://docs.aws.amazon.com/eks/latest/userguide/dashboard-tutorial.html
 https://kubernetes.io/docs/tasks/administer-cluster/namespaces-walkthrough/
 https://www.blazemeter.com/blog/how-to-setup-scalable-jenkins-on-top-of-a-kubernetes-cluster
+https://eksworkshop.com

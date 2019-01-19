@@ -6,6 +6,9 @@ Parameters:
   ModuleName:
     Description: The name of the module for this CodeBuild project.
     Type: String
+  GitHubToken:
+    Description: The GitHub Personal Access Token to use
+    Type: String
 
 Resources:
   CloudFormationTrustRole:
@@ -91,6 +94,21 @@ Resources:
               - !Ref 'CacheBucket'
               - /*
         - Action:
+          - s3:PutObject
+          - s3:GetObject
+          - s3:GetObjectVersion
+          Effect: Allow
+          Resource:
+          - !Join
+            - ''
+            - - 'arn:aws:s3:::'
+              - !Ref 'ArtifactBucket'
+          - !Join
+            - ''
+            - - 'arn:aws:s3:::'
+              - !Ref 'ArtifactBucket'
+              - /*
+        - Action:
           - ecr:BatchCheckLayerAvailability
           - ecr:CompleteLayerUpload
           - ecr:GetAuthorizationToken
@@ -124,14 +142,14 @@ Resources:
 
   ECR:
     Type: AWS::ECR::Repository
-    Properties: 
+    Properties:
       RepositoryName: !Join
         - 'ecr-'
         - - !Ref ModuleName
 
   CodeBuildProject:
     DependsOn:
-    - CodeBuildPolicy
+      - CodeBuildPolicy
     Properties:
       Artifacts:
         Type: NO_ARTIFACTS
@@ -147,7 +165,7 @@ Resources:
         Image: aws/codebuild/docker:18.09.0
         Type: LINUX_CONTAINER
         EnvironmentVariables:
-          - Name: IMAGE_REPO 
+          - Name: IMAGE_REPO
             Type: PLAINTEXT
             Value: !Join
             - ''
@@ -162,7 +180,7 @@ Resources:
         Type: GITHUB
         Auth:
             Type: OAUTH
-            Resource: 'f4d942a6e47da755ae540f5226159736456db7c9'
+            Resource: !Ref GitHubToken
         Location: !Join
           - ''
           - - https://github.com/bootifulmicropizza/
@@ -172,6 +190,49 @@ Resources:
         Webhook: true
       BadgeEnabled: true
     Type: AWS::CodeBuild::Project
+
+  CodePipeline:
+    DependsOn:
+      - CodeBuildProject
+    Properties:
+      RoleArn:
+        Fn::GetAtt: [CodePipelineRole, Arn]
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactBucket
+      Stages:
+        -
+          Name: Source
+          Actions:
+            - Name: source
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              OutputArtifacts:
+                - Name: CodeOutput
+              Configuration:
+                Owner: bootifulmicropizza
+                Repo: !Ref ModuleName
+                Branch: master
+                OAuthToken: !Ref GitHubToken
+              RunOrder: 1
+        -
+          Name: build
+          Actions:
+            - Name: build
+              InputArtifacts:
+                - Name: CodeOutput
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+              RunOrder: 1
+    Type: AWS::CodePipeline::Pipeline
 
   CodeBuildRole:
     Description: Creating service role in IAM for Amazon EC2 instances
@@ -189,6 +250,47 @@ Resources:
           - CodeBuild
     Type: AWS::IAM::Role
 
+  CodePipelineRole:
+    Description: Creating role in IAM for CodePipeline
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join
+        - '-'
+        - - !Ref 'AWS::StackName'
+          - CodePipeline
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service: codepipeline.amazonaws.com
+      Path: /
+      Policies:
+        - PolicyName: "CodePipelineNestedCFNAccessPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "codebuild:StartBuild"
+                  - "codebuild:BatchGetBuilds"
+                Resource: '*'
+              - Action:
+                - s3:PutObject
+                - s3:GetObject
+                - s3:GetObjectVersion
+                Effect: Allow
+                Resource:
+                - !Join
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - !Ref 'ArtifactBucket'
+                - !Join
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - !Ref 'ArtifactBucket'
+                    - /*
+
   CacheBucket:
     DeletionPolicy: Delete
     Description: Creating Amazon S3 bucket for CodeBuild caching
@@ -199,5 +301,18 @@ Resources:
       LifecycleConfiguration:
         Rules:
           - ExpirationInDays: 30
+            Status: Enabled
+    Type: AWS::S3::Bucket
+
+  ArtifactBucket:
+    DeletionPolicy: Delete
+    Description: Creating Amazon S3 bucket for CodePipeline artifacts
+    Properties:
+      Tags:
+      - Key: Name
+        Value: ArtifactBucket
+      LifecycleConfiguration:
+        Rules:
+          - ExpirationInDays: 1
             Status: Enabled
     Type: AWS::S3::Bucket
