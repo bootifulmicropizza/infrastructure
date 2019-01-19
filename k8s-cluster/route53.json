@@ -1,0 +1,20 @@
+{
+    "HostedZoneId": "Z3TH6E5MZ6R1K6",
+    "ChangeBatch": {
+        "Changes": [
+            {
+                "Action": "UPSERT",
+                "ResourceRecordSet": {
+                    "Name": "www.bootifulmicropizza.com.",
+                    "Type": "CNAME",
+                    "TTL": 60,
+                    "ResourceRecords": [
+                        {
+                            "Value": "INGRESS_ELB"
+                        }
+                    ]
+                }
+            }
+        ]
+    }
+}

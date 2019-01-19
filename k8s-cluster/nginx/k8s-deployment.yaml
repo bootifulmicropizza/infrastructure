@@ -1,0 +1,22 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: nginx
+  namespace: pizza
+  labels:
+    app: nginx
+spec:
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: nginx
+        tier: nginx
+    spec:
+      containers:
+      - image: iancollington/welcome
+        name: nginx
+        ports:
+        - containerPort: 80
+          name: nginx

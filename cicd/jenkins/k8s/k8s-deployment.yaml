@@ -1,0 +1,51 @@
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: jenkins
+  namespace: jenkins
+  labels:
+    app: jenkins
+spec:
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: jenkins
+        tier: jenkins
+    spec:
+      containers:
+      - image: iancollington/bootifulmicropizza_jenkins:latest
+        name: jenkins
+        env:
+          - name: DOCKER_HOST
+            value: tcp://localhost:2375
+          - name: JENKINS_UI_URL
+            value: https://jenkins.bootifulmicropizza.com/
+        ports:
+        - containerPort: 8080
+          name: jenkins
+        volumeMounts:
+        - name: jenkins-persistent-storage
+          mountPath: /root/.jenkins
+      - name: dind-daemon 
+        image: docker:17.09.1-dind 
+        resources:
+          requests:
+            cpu: "1"
+            memory: 512Mi
+          limits:
+            cpu: "1.5"
+            memory: 1536Mi
+        securityContext: 
+            privileged: true 
+        volumeMounts: 
+          - name: docker-graph-storage 
+            mountPath: /var/lib/docker
+      serviceAccountName: jenkins
+      volumes:
+      - name: docker-graph-storage 
+        emptyDir: {}
+      - name: jenkins-persistent-storage
+        persistentVolumeClaim:
+          claimName: jenkins-claim
