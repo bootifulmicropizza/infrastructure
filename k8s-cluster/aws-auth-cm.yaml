@@ -10,3 +10,7 @@ data:
       groups:
         - system:bootstrappers
         - system:nodes
+    - rolearn: arn:aws:iam::408612431374:role/eks_admin_role
+      username: eks_admin_role
+      groups:
+        - system:masters

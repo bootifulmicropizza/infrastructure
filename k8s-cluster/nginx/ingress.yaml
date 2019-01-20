@@ -2,7 +2,6 @@ apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: nginx
-  namespace: pizza
 spec:
   rules:
     - host: www.bootifulmicropizza.com

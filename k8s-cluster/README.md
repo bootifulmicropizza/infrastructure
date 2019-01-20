@@ -1,7 +1,7 @@
 # EKS cluster creation and initial setup
 
 This repo contains a CloudFormation template to create the EKS cluster within
-AWS and setup and install various kubernetes applications.
+AWS and setup and install various Kubernetes applications.
 
 ## Create a cluster
 
@@ -11,7 +11,7 @@ e.g. `./create_cluster.sh bootifulmicropizza`
 
 Once the cluster has been created, the Dashboard token can be retrieved by executing the following command:
 
-`kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep eks-admin | awk '{print $1}')``
+`kubectl -n kube-system describe secret $(kubectl -n kube-system get secret | grep eks-admin | awk '{print $1}')`
 
 The local proxy to serve the dashboard through can then be started:
 
@@ -21,14 +21,13 @@ Open the browser at http://localhost:8001/api/v1/namespaces/kube-system/services
 
 ## Ingress
 
-The standard Kubernetes Ingress controller is installed such that it is ready for use by applications. Any application that requires exposing to the internet simply requires an ingress:
+The standard Kubernetes Ingress controller is installed such that it is ready for use by applications. Any application that requires exposing to the internet simply requires an ingress definition:
 
 ```
 apiVersion: extensions/v1beta1
 kind: Ingress
 metadata:
   name: nginx
-  namespace: pizza
 spec:
   rules:
     - host: www.bootifulmicropizza.com

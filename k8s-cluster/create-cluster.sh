@@ -15,7 +15,7 @@ function createCluster() {
 	echo "Create cluster $CLUSTER_NAME"
 
 	# Create stack from CF template
-	aws cloudformation create-stack --stack-name $CLUSTER_NAME --parameters ParameterKey=ClusterName,ParameterValue=$CLUSTER_NAME --template-body file://bootifulmicropizza_stack.yml --region $AWS_REGION --capabilities CAPABILITY_IAM
+	aws cloudformation create-stack --stack-name $CLUSTER_NAME --parameters ParameterKey=ClusterName,ParameterValue=$CLUSTER_NAME --template-body file://bootifulmicropizza_stack.yml --region $AWS_REGION --capabilities CAPABILITY_IAM --disable-rollback
 
 	# Wait for cluster to be created
 	waitForClusterCreateComplete
@@ -37,9 +37,6 @@ function createCluster() {
 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/influxdb/heapster.yaml
 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/influxdb/influxdb.yaml
 	kubectl apply -f https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/rbac/heapster-rbac.yaml
-
-	# Create the pizza namespace
-	kubectl apply -f pizza-namespace.json
 
 	# Install ingress
 	kubectl apply -f ingress/mandatory.yaml
