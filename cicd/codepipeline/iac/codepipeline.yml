@@ -1,0 +1,391 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Code Pipeline infrastructure
+
+Parameters:
+  ModuleName:
+    Description: The name of the module for this CodeBuild project.
+    Type: String
+  GitHubToken:
+    Description: The GitHub Personal Access Token to use
+    Type: String
+
+Resources:
+  CloudFormationTrustRole:
+    Description: Creating service role in IAM for AWS CloudFormation
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service:
+            - cloudformation.amazonaws.com
+      Path: /
+      Policies:
+      - PolicyDocument:
+          Statement:
+          - Action:
+            - iam:CreateRole
+            - iam:AttachRolePolicy
+            - iam:PutRolePolicy
+            - iam:PassRole
+            - iam:DetachRolePolicy
+            - iam:ListRolePolicies
+            - iam:GetRole
+            - iam:DeleteRolePolicy
+            - iam:UpdateRoleDescription
+            - iam:ListRoles
+            - iam:DeleteRole
+            - iam:GetRolePolicy
+            - iam:CreateInstanceProfile
+            - iam:AddRoleToInstanceProfile
+            - iam:DeleteInstanceProfile
+            - iam:GetInstanceProfile
+            - iam:ListInstanceProfiles
+            - iam:ListInstanceProfilesForRole
+            - iam:RemoveRoleFromInstanceProfile
+            Effect: Allow
+            Resource:
+            - !Sub "arn:aws:iam::*:role/${AWS::StackName}*"
+            - !Sub "arn:aws:iam::*:instance-profile/${AWS::StackName}*"
+          - Action:
+            - ssm:GetParameters
+            - autoscaling:*
+            - ec2:*
+            - codedeploy:*
+            - elasticloadbalancing:*
+            Effect: Allow
+            Resource: '*'
+        PolicyName: !Join
+          - '-'
+          -  - !Ref 'AWS::StackName'
+             - CloudFormationRolePolicy
+      RoleName: !Join
+        - '-'
+        -  - !Ref 'AWS::StackName'
+           - CloudFormation
+    Type: AWS::IAM::Role
+
+  CodeBuildPolicy:
+    Description: Setting IAM policy for service role for CodeBuild
+    Properties:
+      PolicyDocument:
+        Statement:
+        - Action:
+          - logs:CreateLogGroup
+          - logs:CreateLogStream
+          - logs:PutLogEvents
+          Effect: Allow
+          Resource: '*'
+        - Action:
+          - s3:PutObject
+          - s3:GetObject
+          - s3:GetObjectVersion
+          Effect: Allow
+          Resource:
+          - !Join
+            - ''
+            - - 'arn:aws:s3:::'
+              - !Ref 'CacheBucket'
+          - !Join
+            - ''
+            - - 'arn:aws:s3:::'
+              - !Ref 'CacheBucket'
+              - /*
+        - Action:
+          - s3:PutObject
+          - s3:GetObject
+          - s3:GetObjectVersion
+          Effect: Allow
+          Resource:
+          - !Join
+            - ''
+            - - 'arn:aws:s3:::'
+              - !Ref 'ArtifactBucket'
+          - !Join
+            - ''
+            - - 'arn:aws:s3:::'
+              - !Ref 'ArtifactBucket'
+              - /*
+        - Action:
+          - eks:*
+          Effect: Allow
+          Resource: "*"
+        - Action:
+          - ecr:BatchCheckLayerAvailability
+          - ecr:BatchGetImage
+          - ecr:GetRepositoryPolicy
+          - ecr:SetRepositoryPolicy
+          - ecr:CompleteLayerUpload
+          - ecr:GetAuthorizationToken
+          - ecr:InitiateLayerUpload
+          - ecr:PutImage
+          - ecr:UploadLayerPart
+          - ecr:GetDownloadUrlForLayer
+          Effect: Allow
+          Resource: "*"
+        - Action:
+          - kms:GenerateDataKey*
+          - kms:Encrypt
+          - kms:Decrypt
+          Effect: Allow
+          Resource:
+          - !Join
+            - ':'
+            - - arn:aws:kms
+              - !Ref 'AWS::Region'
+              - !Ref 'AWS::AccountId'
+              - !Join
+                - /
+                - - alias
+                  - aws/s3
+      PolicyName: !Join
+        - '-'
+        -  - !Ref 'AWS::StackName'
+           - CodeBuildPolicy
+      Roles:
+      - !Ref 'CodeBuildRole'
+    Type: AWS::IAM::Policy
+
+  ECR:
+    Type: AWS::ECR::Repository
+    Properties:
+      RepositoryName: !Join
+        - 'ecr-'
+        - - !Ref ModuleName
+      RepositoryPolicyText:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: CodeBuildAccess
+            Effect: Allow
+            Principal:
+              Service: codebuild.amazonaws.com
+            Action:
+              - ecr:GetDownloadUrlForLayer
+              - ecr:BatchGetImage
+              - ecr:BatchCheckLayerAvailability
+              - ecr:PutImage
+              - ecr:InitiateLayerUpload
+              - ecr:UploadLayerPart
+              - ecr:CompleteLayerUpload
+              - ecr:GetRepositoryPolicy
+              - ecr:SetRepositoryPolicy
+
+  CodeBuildProject:
+    DependsOn:
+      - CodeBuildPolicy
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Cache:
+        Location: !Ref 'CacheBucket'
+        Type: S3
+      Description: !Join
+        - ''
+        - - 'CodeBuild Project for '
+          - !Ref 'ModuleName'
+      Environment:
+        ComputeType: BUILD_GENERAL1_LARGE
+        Image: aws/codebuild/docker:18.09.0
+        # Image: !Sub ${AWS::AccountId}.dkr.ecr.eu-west-1.amazonaws.com/codebuild_image
+        Type: LINUX_CONTAINER
+        PrivilegedMode: true
+        EnvironmentVariables:
+          - Name: IMAGE_REPO
+            Type: PLAINTEXT
+            Value: !Join
+            - ''
+            - - !Ref 'AWS::AccountId'
+              - .dkr.ecr.eu-west-1.amazonaws.com
+          - Name: MODULE_NAME
+            Type: PLAINTEXT
+            Value: !Ref ModuleName
+      Name: !Ref ModuleName
+      ServiceRole: !Ref 'CodeBuildRole'
+      Source:
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 5
+    Type: AWS::CodeBuild::Project
+
+  CodeDeployProject:
+    DependsOn:
+      - CodeBuildPolicy
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+      Cache:
+        Location: !Ref 'CacheBucket'
+        Type: S3
+      Description: !Join
+        - ''
+        - - 'CodeBuild Project for '
+          - !Ref 'ModuleName'
+      Environment:
+        ComputeType: BUILD_GENERAL1_LARGE
+        Image: aws/codebuild/docker:18.09.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: IMAGE_REPO
+            Type: PLAINTEXT
+            Value: !Join
+            - ''
+            - - !Ref 'AWS::AccountId'
+              - .dkr.ecr.eu-west-1.amazonaws.com
+          - Name: MODULE_NAME
+            Type: PLAINTEXT
+            Value: !Ref ModuleName
+      Name: !Join
+        - '-'
+        - - !Ref ModuleName
+          - deploy
+      ServiceRole: arn:aws:iam::408612431374:role/eks_admin_role
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: buildspec-deploy.yml
+      TimeoutInMinutes: 5
+    Type: AWS::CodeBuild::Project
+
+  CodePipeline:
+    DependsOn:
+      - CodeBuildProject
+    Properties:
+      Name: !Join
+      - '-'
+      - - !Ref ModuleName
+        - 'pipeline'
+      RoleArn:
+        Fn::GetAtt: [CodePipelineRole, Arn]
+      ArtifactStore:
+        Type: S3
+        Location: !Ref ArtifactBucket
+      Stages:
+        -
+          Name: Source
+          Actions:
+            - Name: Clone_GitHub_Repo
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              OutputArtifacts:
+                - Name: CodeOutput
+              Configuration:
+                Owner: bootifulmicropizza
+                Repo: !Ref ModuleName
+                Branch: master
+                OAuthToken: !Ref GitHubToken
+              RunOrder: 1
+        -
+          Name: Build
+          Actions:
+            - Name: Compile_test_package
+              InputArtifacts:
+                - Name: CodeOutput
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref CodeBuildProject
+              RunOrder: 1
+        -
+          Name: Deploy
+          Actions:
+            - Name: Deploy_to_K8S
+              InputArtifacts:
+                - Name: CodeOutput
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Version: 1
+                Provider: CodeBuild
+              Configuration:
+                ProjectName: !Ref CodeDeployProject
+              RunOrder: 1
+    Type: AWS::CodePipeline::Pipeline
+
+  CodeBuildRole:
+    Description: Creating service role in IAM for Amazon EC2 instances
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service: codebuild.amazonaws.com
+      Path: /
+      RoleName: !Join
+        - '-'
+        - - !Ref 'AWS::StackName'
+          - CodeBuild
+    Type: AWS::IAM::Role
+
+  CodePipelineRole:
+    Description: Creating role in IAM for CodePipeline
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Join
+        - '-'
+        - - !Ref 'AWS::StackName'
+          - CodePipeline
+      AssumeRolePolicyDocument:
+        Statement:
+        - Action: sts:AssumeRole
+          Effect: Allow
+          Principal:
+            Service: codepipeline.amazonaws.com
+      Path: /
+      Policies:
+        - PolicyName: "CodePipelineNestedCFNAccessPolicy"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement:
+              - Effect: "Allow"
+                Action:
+                  - "codebuild:StartBuild"
+                  - "codebuild:BatchGetBuilds"
+                Resource: '*'
+              - Action:
+                - s3:PutObject
+                - s3:GetObject
+                - s3:GetObjectVersion
+                Effect: Allow
+                Resource:
+                - !Join
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - !Ref 'ArtifactBucket'
+                - !Join
+                  - ''
+                  - - 'arn:aws:s3:::'
+                    - !Ref 'ArtifactBucket'
+                    - /*
+
+  CacheBucket:
+    DeletionPolicy: Delete
+    Description: Creating Amazon S3 bucket for CodeBuild caching
+    Properties:
+      Tags:
+      - Key: Name
+        Value: CodeBuildM2Cache
+      LifecycleConfiguration:
+        Rules:
+          - ExpirationInDays: 30
+            Status: Enabled
+    Type: AWS::S3::Bucket
+
+  ArtifactBucket:
+    DeletionPolicy: Delete
+    Description: Creating Amazon S3 bucket for CodePipeline artifacts
+    Properties:
+      Tags:
+      - Key: Name
+        Value: ArtifactBucket
+      LifecycleConfiguration:
+        Rules:
+          - ExpirationInDays: 1
+            Status: Enabled
+    Type: AWS::S3::Bucket
