@@ -20,7 +20,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: VpcStack
     Properties:
-      TimeoutInMinutes: "60"
+      TimeoutInMinutes: "20"
       TemplateURL: https://s3.amazonaws.com/cf.iancollington.com/eks_cluster.yml
       Parameters:
         ClusterName: !Ref ClusterName
@@ -32,7 +32,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     DependsOn: EksCluster
     Properties:
-      TimeoutInMinutes: "60"
+      TimeoutInMinutes: "20"
       TemplateURL: https://s3.amazonaws.com/cf.iancollington.com/eks_nodes.yml
       Parameters:
         KeyName: "eks-cluster"

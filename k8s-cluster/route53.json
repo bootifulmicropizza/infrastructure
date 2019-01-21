@@ -14,6 +14,45 @@
                         }
                     ]
                 }
+            },
+            {
+                "Action": "UPSERT",
+                "ResourceRecordSet": {
+                    "Name": "config.bootifulmicropizza.com.",
+                    "Type": "CNAME",
+                    "TTL": 60,
+                    "ResourceRecords": [
+                        {
+                            "Value": "INGRESS_ELB"
+                        }
+                    ]
+                }
+            },
+            {
+                "Action": "UPSERT",
+                "ResourceRecordSet": {
+                    "Name": "registry1.bootifulmicropizza.com.",
+                    "Type": "CNAME",
+                    "TTL": 60,
+                    "ResourceRecords": [
+                        {
+                            "Value": "INGRESS_ELB"
+                        }
+                    ]
+                }
+            },
+            {
+                "Action": "UPSERT",
+                "ResourceRecordSet": {
+                    "Name": "registry2.bootifulmicropizza.com.",
+                    "Type": "CNAME",
+                    "TTL": 60,
+                    "ResourceRecords": [
+                        {
+                            "Value": "INGRESS_ELB"
+                        }
+                    ]
+                }
             }
         ]
     }

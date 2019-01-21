@@ -15,7 +15,7 @@ function createCluster() {
 	echo "Create cluster $CLUSTER_NAME"
 
 	# Create stack from CF template
-	aws cloudformation create-stack --stack-name $CLUSTER_NAME --parameters ParameterKey=ClusterName,ParameterValue=$CLUSTER_NAME --template-body file://bootifulmicropizza_stack.yml --region $AWS_REGION --capabilities CAPABILITY_IAM --disable-rollback
+	aws cloudformation create-stack --stack-name $CLUSTER_NAME-eks-cluster --parameters ParameterKey=ClusterName,ParameterValue=$CLUSTER_NAME --template-body file://bootifulmicropizza_stack.yml --region $AWS_REGION --capabilities CAPABILITY_IAM --disable-rollback
 
 	# Wait for cluster to be created
 	waitForClusterCreateComplete
