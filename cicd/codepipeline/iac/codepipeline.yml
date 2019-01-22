@@ -187,8 +187,7 @@ Resources:
           - !Ref 'ModuleName'
       Environment:
         ComputeType: BUILD_GENERAL1_LARGE
-        Image: aws/codebuild/docker:18.09.0
-        # Image: !Sub ${AWS::AccountId}.dkr.ecr.eu-west-1.amazonaws.com/codebuild_image
+        Image: !Sub ${AWS::AccountId}.dkr.ecr.eu-west-1.amazonaws.com/codebuild_image
         Type: LINUX_CONTAINER
         PrivilegedMode: true
         EnvironmentVariables:

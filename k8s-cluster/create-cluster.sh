@@ -8,14 +8,15 @@ then
 fi
 
 CLUSTER_NAME=$1
+STACK_NAME=$1-eks-cluster
 AWS_REGION=eu-west-1
 SSL_CERT=arn:aws:acm:eu-west-1:408612431374:certificate/d5f175d0-86d1-45a8-82f1-ad921afaae0b
 
 function createCluster() {
-	echo "Create cluster $CLUSTER_NAME"
+	echo "Creating cluster $CLUSTER_NAME"
 
 	# Create stack from CF template
-	aws cloudformation create-stack --stack-name $CLUSTER_NAME-eks-cluster --parameters ParameterKey=ClusterName,ParameterValue=$CLUSTER_NAME --template-body file://bootifulmicropizza_stack.yml --region $AWS_REGION --capabilities CAPABILITY_IAM --disable-rollback
+	aws cloudformation create-stack --stack-name $STACK_NAME --parameters ParameterKey=ClusterName,ParameterValue=$CLUSTER_NAME --template-body file://bootifulmicropizza_stack.yml --region $AWS_REGION --capabilities CAPABILITY_IAM --disable-rollback
 
 	# Wait for cluster to be created
 	waitForClusterCreateComplete
@@ -61,7 +62,7 @@ function createCluster() {
 
 function waitForClusterCreateComplete {
 	echo "Waiting for cluster $CLUSTER_NAME creation...."
-	aws cloudformation wait stack-create-complete --stack-name $CLUSTER_NAME
+	aws cloudformation wait stack-create-complete --stack-name $STACK_NAME
 
 	if [ "$?" != "0" ]; then
 		echo "ERROR: Cluster $CLUSTER_NAME failed to create"
