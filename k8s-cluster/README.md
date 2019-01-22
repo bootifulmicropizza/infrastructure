@@ -46,9 +46,9 @@ The `delete_cluster.sh` script can be used to delete a cluster with the provided
 e.g. `./delete_cluster.sh bootifulmicropizza`
 
 ### References
-https://github.com/thestacks-io/eks-cluster
-https://hackernoon.com/quickly-spin-up-an-aws-eks-kubernetes-cluster-using-cloudformation-3d59c56b292e
-https://docs.aws.amazon.com/eks/latest/userguide/dashboard-tutorial.html
-https://kubernetes.io/docs/tasks/administer-cluster/namespaces-walkthrough/
-https://www.blazemeter.com/blog/how-to-setup-scalable-jenkins-on-top-of-a-kubernetes-cluster
-https://eksworkshop.com
+- https://github.com/thestacks-io/eks-cluster
+- https://hackernoon.com/quickly-spin-up-an-aws-eks-kubernetes-cluster-using-cloudformation-3d59c56b292e
+- https://docs.aws.amazon.com/eks/latest/userguide/dashboard-tutorial.html
+- https://kubernetes.io/docs/tasks/administer-cluster/namespaces-walkthrough/
+- https://www.blazemeter.com/blog/how-to-setup-scalable-jenkins-on-top-of-a-kubernetes-cluster
+- https://eksworkshop.com
