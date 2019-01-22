@@ -8,6 +8,7 @@ then
 fi
 
 CLUSTER_NAME=$1
+STACK_NAME=$1-eks-cluster
 AWS_REGION=eu-west-1
 
 function deleteCluster() {
@@ -21,7 +22,7 @@ function deleteCluster() {
 	aws elb delete-load-balancer --load-balancer-name $LOAD_BALANCER_NAME
 
 	# Delete stack from CF
-	aws cloudformation delete-stack --stack-name $CLUSTER_NAME --region $AWS_REGION
+	aws cloudformation delete-stack --stack-name $STACK_NAME --region $AWS_REGION
 }
 
 deleteCluster $@
