@@ -14,6 +14,7 @@ Resources:
       TimeoutInMinutes: "10"
       TemplateURL: https://s3.amazonaws.com/cf.iancollington.com/vpc_stack.yml
       Parameters:
+        VpcName: bootifulmicropizza-vpc
         AvailabilityZones: 'eu-west-1a, eu-west-1b, eu-west-1c'
 
   EksCluster:
@@ -42,3 +43,20 @@ Resources:
         ClusterControlPlaneSecurityGroup:  !GetAtt VpcStack.Outputs.SecurityGroups
         VpcId: !GetAtt VpcStack.Outputs.VpcId
         Subnets: !GetAtt VpcStack.Outputs.SubnetIds
+
+  RdsDatabase:
+    Type: AWS::CloudFormation::Stack
+    DependsOn: EksNodes
+    Properties:
+      TimeoutInMinutes: "20"
+      TemplateURL: https://s3.amazonaws.com/cf.iancollington.com/rds_database.yml
+      Parameters:
+        VpcId: !GetAtt VpcStack.Outputs.VpcId
+        SubnetIds: !GetAtt VpcStack.Outputs.SubnetIds
+        ClientSecurityGroup: !GetAtt EksNodes.Outputs.NodeSecurityGroup
+        DatabaseUser: "bootifulpizza"
+        DatabasePassword: "J2dQgoFHoxwbGZfTs"
+        DatabaseEngine: "aurora"
+        DatabaseEngineMode: "serverless"
+        EncryptionAtRest: true
+        DatabaseInstanceClass: "db.t2.small"

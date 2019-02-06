@@ -8,6 +8,9 @@ Parameters:
   GitHubToken:
     Description: The GitHub Personal Access Token to use
     Type: String
+  BuildImageName:
+    Description: The Docker image to be used for the code build step
+    Type: String
 
 Resources:
   CloudFormationTrustRole:
@@ -187,7 +190,7 @@ Resources:
           - !Ref 'ModuleName'
       Environment:
         ComputeType: BUILD_GENERAL1_LARGE
-        Image: !Sub ${AWS::AccountId}.dkr.ecr.eu-west-1.amazonaws.com/codebuild_image
+        Image: !Ref BuildImageName
         Type: LINUX_CONTAINER
         PrivilegedMode: true
         EnvironmentVariables:

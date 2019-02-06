@@ -1,0 +1,49 @@
+AWSTemplateFormatVersion: 2010-09-09
+
+Description: Elasticsearch for ELK Stack
+
+Parameters:
+  DomainName:
+    Description: 'A name for the Amazon ES domain.'
+    Type: String
+    Default: bootifulmicropizza
+
+Resources:
+  ElasticsearchSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for all nodes in the cluster
+      VpcId: vpc-077cb551677719025
+      SecurityGroupIngress:
+        - SourceSecurityGroupId: sg-0a900de2d89c11e1e
+          IpProtocol: tcp
+          FromPort: 9200
+          ToPort: 9200
+
+  Elasticsearch:
+    Type: AWS::Elasticsearch::Domain
+    DependsOn: ElasticsearchSecurityGroup
+    Properties:
+      AccessPolicies:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            AWS: '*'
+          Action:
+          - 'es:ESHttp*'
+          Resource: !Sub 'arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/${DomainName}/*'
+      DomainName: !Ref 'DomainName'
+      EBSOptions:
+        EBSEnabled: true
+        VolumeType: gp2
+        VolumeSize: 10
+      ElasticsearchClusterConfig:
+        InstanceCount: 1
+        InstanceType: t2.small.elasticsearch
+      ElasticsearchVersion: 6.4
+      VPCOptions:
+        SecurityGroupIds:
+          - !Ref ElasticsearchSecurityGroup
+        SubnetIds:
+          - subnet-0343526d97fa11b6d

@@ -11,6 +11,7 @@ CLUSTER_NAME=$1
 STACK_NAME=$1-eks-cluster
 AWS_REGION=eu-west-1
 SSL_CERT=arn:aws:acm:eu-west-1:408612431374:certificate/d5f175d0-86d1-45a8-82f1-ad921afaae0b
+DASHBOARD_VERSION=1.10.1
 
 function createCluster() {
 	echo "Creating cluster $CLUSTER_NAME"
@@ -33,11 +34,8 @@ function createCluster() {
 	# Register admin account
 	kubectl apply -f eks-admin-service-account.yaml
 
-	# Install various admin apps
-	kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v1.10.1/src/deploy/recommended/kubernetes-dashboard.yaml
-	kubectl apply -f https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/influxdb/heapster.yaml
-	kubectl apply -f https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/influxdb/influxdb.yaml
-	kubectl apply -f https://raw.githubusercontent.com/kubernetes/heapster/master/deploy/kube-config/rbac/heapster-rbac.yaml
+	# Install Dashboard
+	kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v$DASHBOARD_VERSION/src/deploy/recommended/kubernetes-dashboard.yaml
 
 	# Install ingress
 	kubectl apply -f ingress/mandatory.yaml
@@ -55,9 +53,6 @@ function createCluster() {
 	echo "Updating route53...$INGRESS_ELB"
 	JSON=$(cat route53.json | sed "s#INGRESS_ELB#$INGRESS_ELB#g")
 	aws route53 change-resource-record-sets --hosted-zone-id Z3TH6E5MZ6R1K6 --cli-input-json "$JSON"
-
-	# Install dummy webserver pod (simple page for pizza domain to check ingress is working)
-	kubectl apply -f nginx/
 }
 
 function waitForClusterCreateComplete {
